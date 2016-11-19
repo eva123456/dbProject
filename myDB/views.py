@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from django.shortcuts import render
 from django.http import HttpResponse, QueryDict
 from django.db import connection
@@ -10,12 +9,23 @@ from itertools import *
 from django.views.decorators.csrf import csrf_exempt
 import json
 import MySQLdb
+from django.http import JsonResponse
+import ast
 
 #Connection to database
-cursor = connection.cursor()
-cursor.execute('SET Names utf8;')
-cursor.execute('set character set utf8;')
-cursor.execute('set character_set_connection=utf8;')
+db = MySQLdb.connect("localhost","root","f66n9zae2f","API",charset='utf8', init_command='SET NAMES UTF8')
+db.set_character_set('utf8')
+dbc = db.cursor()
+dbc.execute('SET Names utf8;')
+dbc.execute('set character set utf8;')
+dbc.execute('set character_set_connection=utf8;')
+dbc.execute("SET SESSION collation_connection = 'utf8_general_ci';")
+db.commit()
+
+
+def set_quots(data):
+    quots_str = "'" + '%s' % data + "'"
+    return quots_str
 
 
 @csrf_exempt
@@ -23,42 +33,35 @@ def create(request):
     code = 0
     url = request.path
     table = url.replace('/db/api/','').replace('/create','').replace('/','').capitalize()
-    params = request.body.replace('\'','\"')
-    params = params.replace('False','false')
-    params = params.replace('True','true')
-    params = json.loads(params)
-
-    #cursor = connection.cursor()
-    #cursor.execute()
+    params = request.body
+    params = ast.literal_eval(request.body)
+    cursor = db.cursor()
 
     if 'user' in params.keys():
-        email = params['user'].encode('utf8')
-        subquery = 'SELECT idUser FROM User WHERE email = {}'.format('%r' % email)
+        email = set_quots(params['user'])
+        subquery = 'SELECT idUser FROM User WHERE email = ' + email +';'
         cursor.execute(subquery)
         params['user'] = cursor.fetchone()[0]
 
     if 'forum' in params.keys():
-        short_name = params['forum'].encode('utf8')
-        subquery = 'SELECT idForum FROM Forum WHERE short_name = {}'.format('%r' % short_name)
+        short_name = set_quots(params['forum'])
+        subquery = 'SELECT idForum FROM Forum WHERE short_name = ' + short_name + ';'
         cursor.execute(subquery)
         params['forum'] = cursor.fetchone()[0]
 
-    strings = []
-    for value in params.values():
-        strings.append('%r'%str(value).encode('utf8'))
+    values = [set_quots(x) for x in params.values()]
+    means = ', '.join(values) + ');'
+    query = 'INSERT INTO {0}({1}) VALUES('.format(table, ', '.join(params.keys())) + ', '.join(values) + ');'
 
-    query = 'INSERT INTO {0}({1}) VALUES({2})'.format(table, ', '.join(params.keys()),', '.join(strings))
     cursor.execute(query)
+    db.commit()
 
     key = params.keys()[0]
-    value = str(params[key]).encode('utf8')
+    value = set_quots(params[key])
     response = get_details(table, key, value)
 
     dictionary = {'code' : code, 'response' : response}
-    return HttpResponse(json.dumps(dictionary), content_type='application/json')
-
-
-
+    return HttpResponse(query)
 
 def get_details(table, key, value):
     response = {}
