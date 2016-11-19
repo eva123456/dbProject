@@ -50,7 +50,6 @@ def create(request):
         params['forum'] = cursor.fetchone()[0]
 
     values = [set_quots(x) for x in params.values()]
-    means = ', '.join(values) + ');'
     query = 'INSERT INTO {0}({1}) VALUES('.format(table, ', '.join(params.keys())) + ', '.join(values) + ');'
 
     cursor.execute(query)
@@ -61,7 +60,7 @@ def create(request):
     response = get_details(table, key, value)
 
     dictionary = {'code' : code, 'response' : response}
-    return HttpResponse(query)
+    return JsonResponse(dictionary)
 
 def get_details(table, key, value):
     response = {}
@@ -71,7 +70,7 @@ def get_details(table, key, value):
     columns = cursor.fetchall()
     keys = [columns[j][0] for j in range(len(columns))]
 
-    query = 'SELECT {0} FROM {1} WHERE {2} = {3}'.format(', '.join(keys), table, key, '%r'%value)
+    query = 'SELECT {0} FROM {1} WHERE {2} = '.format(', '.join(keys), table, key) + value + ';'
     cursor.execute(query)
     data = cursor.fetchone()
     response = dict(izip(keys, data))
