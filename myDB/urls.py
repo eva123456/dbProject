@@ -4,5 +4,6 @@ from . import views
 
 urlpatterns = [
 url(r'^db/api/[a-z]+/create', views.create, name='create'),
+url(r'^db/api/[a-z]+/details', views.details, name='details'),
 
 ]

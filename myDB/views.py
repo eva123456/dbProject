@@ -24,8 +24,17 @@ db.commit()
 
 
 def set_quots(data):
-    quots_str = "'" + '%s' % data + "'"
-    return quots_str
+    if data is None:
+        return '%s' % 'Null'
+    result = "'" + '%s' % data + "'"
+    if not ((type(data) == str) or (type(data) == unicode)):
+        result = '%s' % data
+    return result
+
+def check_none(data):
+    if (data == 'Null'):
+        return None
+
 
 
 @csrf_exempt
@@ -33,8 +42,7 @@ def create(request):
     code = 0
     url = request.path
     table = url.replace('/db/api/','').replace('/create','').replace('/','').capitalize()
-    params = request.body
-    params = ast.literal_eval(request.body)
+    params = json.loads(request.body)
     cursor = db.cursor()
 
     if 'user' in params.keys():
@@ -51,27 +59,43 @@ def create(request):
 
     values = [set_quots(x) for x in params.values()]
     query = 'INSERT INTO {0}({1}) VALUES('.format(table, ', '.join(params.keys())) + ', '.join(values) + ');'
-
     cursor.execute(query)
     db.commit()
 
-    key = params.keys()[0]
-    value = set_quots(params[key])
+    key = 'id' + table;
+    value = set_quots(cursor.lastrowid)
     response = get_details(table, key, value)
-
     dictionary = {'code' : code, 'response' : response}
     return JsonResponse(dictionary)
+
+
+def details(request):
+    code = 0
+    url = request.path
+    table = url.replace('/db/api/','').replace('/details','').replace('/','').capitalize()
+    params = json.loads(request.body)
+    cursor = db.cursor()
+
+
+
+
+
+
+
+
 
 def get_details(table, key, value):
     response = {}
     query = 'SHOW COLUMNS FROM {}'.format(table)
-    cursor = connection.cursor()
+    cursor = db.cursor()
     cursor.execute(query)
+    db.commit()
     columns = cursor.fetchall()
     keys = [columns[j][0] for j in range(len(columns))]
 
     query = 'SELECT {0} FROM {1} WHERE {2} = '.format(', '.join(keys), table, key) + value + ';'
     cursor.execute(query)
+    db.commit()
     data = cursor.fetchone()
     response = dict(izip(keys, data))
     if (response.has_key('date')):
