@@ -177,7 +177,7 @@ def listUsersf(request):
 def listThreadsf(request):
     params = dict(request.GET.iterlists())
     required = params.get('forum',())
-    since_id = params.get('since_id',())
+    since_id = params.get('since',())
     order = params.get('order',('desc',))
     limit = params.get('limit',())
     optional = params.get('related',())
@@ -216,11 +216,50 @@ def listThreadsf(request):
     return JsonResponse(dictionary)
 
 
+@csrf_exempt
+def listPostsf(request):
+    params = dict(request.GET.iterlists())
+    required = params.get('forum',())
+    since_id = params.get('since',())
+    order = params.get('order',('desc',))
+    limit = params.get('limit',())
+    optional = params.get('related',())
 
+    since_query = ''
+    limit_query = ''
+    if(since_id):
+        since_id = since_id[0]
+        since_query = 'AND date >= ' + set_quots(since_id)
+    if(limit):
+        limit = limit[0]
+        limit_query = ' LIMIT {}'.format(limit)
+    order = order[0]
+    order_query = ' ORDER BY date {}'.format(order)
+    full_opt_query = since_query + order_query + limit_query
+    sub_query = ' forum IN (SELECT idForum FROM Forum WHERE short_name = ' + set_quots(required[0]) + ')'
+    query = 'SELECT DISTINCT idPost FROM Post WHERE' + sub_query + full_opt_query +';'
 
+    cursor = db.cursor()
+    cursor.execute(query)
+    db.commit()
+    response = []
+    for i in xrange(cursor.rowcount):
+        idPost = set_quots(cursor.fetchone()[0])
+        sub_dict = {}
+        sub_dict = get_details('Post', 'idPost', idPost)
+        if ('user' in optional):
+            usr_email = sub_dict['user']
+            sub_dict['user'] = get_details('User', 'email', set_quots(usr_email))
+        if ('forum' in optional):
+            frm_shortname = sub_dict['forum']
+            sub_dict['forum'] = get_details('Forum', 'short_name', set_quots(frm_shortname))
+        if('thread' in optional):
+            idThread = sub_dict['thread']
+            sub_dict['thread'] = get_details('Thread', 'idThread', set_quots(idThread))
+        response.append(sub_dict)
 
-
-
+    dictionary = {'code' : 0, 'response' : response}
+    return JsonResponse(dictionary)
 
 
 def get_details(table, key, value):
