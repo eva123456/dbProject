@@ -36,6 +36,21 @@ def check_none(data):
         return None
 
 
+@csrf_exempt
+def clear(request):
+    cursor = db.cursor()
+    cursor.execute('SET FOREIGN_KEY_CHECKS = 0;');
+    cursor.execute('TRUNCATE Post')
+    cursor.execute('TRUNCATE Subscriptions')
+    cursor.execute('TRUNCATE Thread')
+    cursor.execute('TRUNCATE Forum')
+    cursor.execute('TRUNCATE Follow')
+    cursor.execute('TRUNCATE User')
+    db.commit()
+    dictionary = {'code' : 0, 'response': 'OK'}
+    return JsonResponse(dictionary)
+
+
 
 @csrf_exempt
 def create(request):
@@ -64,7 +79,8 @@ def create(request):
 
     key = 'id' + table;
     value = set_quots(cursor.lastrowid)
-    response = get_details(table, key, value)
+    #response = get_details(table, key, value)
+    response = params.update({'id' : value})
     dictionary = {'code' : code, 'response' : response}
     return JsonResponse(dictionary)
 
@@ -73,8 +89,14 @@ def details(request):
     code = 0
     url = request.path
     table = url.replace('/db/api/','').replace('/details','').replace('/','').capitalize()
-    params = json.loads(request.body)
+    #requet method = GET
+
+
+
+
+
     cursor = db.cursor()
+    query = 'SELECT GROUP_CONCAT(followers), GROUP_CONCAT(following) FROM FollowingTable WHERE {0} = {1}'
 
 
 
@@ -92,10 +114,10 @@ def get_details(table, key, value):
     db.commit()
     columns = cursor.fetchall()
     keys = [columns[j][0] for j in range(len(columns))]
-
     query = 'SELECT {0} FROM {1} WHERE {2} = '.format(', '.join(keys), table, key) + value + ';'
     cursor.execute(query)
     db.commit()
+
     data = cursor.fetchone()
     response = dict(izip(keys, data))
     if (response.has_key('date')):
@@ -103,6 +125,13 @@ def get_details(table, key, value):
 
     id_val = response.pop('id'+table)
     response['id'] = id_val
+
+    flag = False
+
+    if(table == 'User'):
+        query = 'SELECT GROUP_CONCAT(follower), GROUP_CONCAT(followee) FROM Follow WHERE user = ' + key + ';'
+
+
 
     return response
 
