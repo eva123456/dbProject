@@ -50,6 +50,20 @@ def clear(request):
     dictionary = {'code' : 0, 'response': 'OK'}
     return JsonResponse(dictionary)
 
+@csrf_exempt
+def status(request):
+    response = {}
+    cursor = db.cursor()
+    cursor.execute('SELECT COUNT(*) FROM User')
+    response['user'] = int(cursor.fetchone()[0])
+    cursor.execute('SELECT COUNT(*) FROM Thread where isDeleted = false')
+    response['thread'] = int(cursor.fetchone()[0])
+    cursor.execute('SELECT COUNT(*) FROM Forum')
+    response['forum'] = int(cursor.fetchone()[0])
+    cursor.execute('SELECT COUNT(*) FROM Post where isDeleted = false')
+    response['post'] = int(cursor.fetchone()[0])
+    dictionary = {'code': 0, 'response': response}
+    return HttpResponse(json.dumps(dictionary), content_type='application/json')
 
 
 @csrf_exempt
