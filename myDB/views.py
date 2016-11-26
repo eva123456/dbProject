@@ -88,15 +88,27 @@ def create(request):
 
     values = [set_quots(x) for x in params.values()]
     query = 'INSERT INTO {0}({1}) VALUES('.format(table, ', '.join(params.keys())) + ', '.join(values) + ');'
-    cursor.execute(query)
-    db.commit()
+    try:
+        cursor.execute(query)
+        db.commit()
+        key = 'id' + table;
+        value = cursor.lastrowid
 
-    key = 'id' + table;
-    value = set_quots(cursor.lastrowid)
-    response = params
-    response.update({'id' : value})
+        if(table == 'Post'):
+            idThread = params['thread']
+            subquery = 'UPDATE Thread SET posts = posts+1 where idThread = ' + set_quots(idThread) + ';'
+            cursor.execute(subquery)
+            db.commit()
+
+        response = params
+        response.update({'id' : value})
+    except:
+        code =  5
+        response = 'Error type 5'
+
     dictionary = {'code' : code, 'response' : response}
     return JsonResponse(dictionary)
+
 
 @csrf_exempt
 def details(request):
@@ -104,17 +116,28 @@ def details(request):
     table = url.replace('/db/api/','').replace('/details','').replace('/','')
     params = dict(request.GET.iterlists())
     required = params.get(table,())
-    #add possible fields
-    
-    keys = {'user' : 'email',
-            'forum' : 'short_name',
-            'thread' : 'idThread',
-            'post' : 'idPost'
-           }
+    keys = {'user' : 'email', 'forum' : 'short_name', 'thread' : 'idThread', 'post' : 'idPost'}
     key = keys.get(table,'')
     table = table.capitalize()
     value = set_quots(required[0])
     response = get_details(table, key, value)
+    if response is None:
+        dictionary = {'code' : 1, 'response' : 'Error type 1'}
+        return JsonResponse(dictionary)
+
+    possible = {'Forum' : ['user'], 'Thread' : ['user', 'forum'], 'Post' : ['user', 'forum', 'thread']}
+    sub_dict = {}
+    optional = params.get('related',())
+    cursor = db.cursor()
+    for elem in optional:
+        if(elem in possible[table]):
+            value = set_quots(response[elem])
+            sub_dict[elem] = get_details(elem.capitalize(), keys[elem] , value)
+        else:
+            dictionary = {'code' : 3, 'response' : 'Error type 3'}
+            return JsonResponse(dictionary)
+
+    response.update(sub_dict)
     dictionary = {'code' : 0, 'response' : response}
     return JsonResponse(dictionary)
 
@@ -132,15 +155,36 @@ def get_details(table, key, value):
     db.commit()
 
     data = cursor.fetchone()
+    if data is None:
+        return None
+
     response = dict(izip(keys, data))
     if (response.has_key('date')):
         response['date'] = str(response['date'])
 
-    id_val = int(response.pop('id'+table))
+    id_val = response.pop('id'+table)
     response['id'] = id_val
+    id_val = set_quots(id_val)
 
+    subdict = {}
     if(table == 'User'):
         subdict = optional_user_fields(id_val)
+    else:
+        idUser = set_quots(response['user'])
+        query = 'SELECT email FROM User WHERE idUser = ' + idUser + ';'
+        cursor.execute(query)
+        db.commit()
+        user_email = cursor.fetchone()[0]
+        subdict['user'] = user_email
+
+        if 'forum' in response.keys():
+            idForum = set_quots(response['forum'])
+            query = 'SELECT short_name FROM Forum WHERE idForum = ' + idForum + ';'
+            cursor.execute(query)
+            db.commit()
+            forum_shortname = cursor.fetchone()[0]
+            subdict['forum'] = forum_shortname
+
     response.update(subdict)
     return response
 
@@ -149,21 +193,30 @@ def optional_user_fields(id):
     subdict = {}
     cursor = db.cursor()
     subquery = '(SELECT follower FROM Follow WHERE user = {})'.format(id)
-    query = 'SELECT GROUP_CONCAT(email) FROM User WHERE idUser in {0}'.format(subquery)
+    query = 'SELECT email FROM User WHERE idUser in {0}'.format(subquery)
     cursor.execute(query)
     db.commit()
-    subdict['followers'] = cursor.fetchone()
+    emails = []
+    for i in xrange(cursor.rowcount):
+        emails.append(cursor.fetchone()[0])
+    subdict['followers'] = emails
 
     subquery = '(SELECT followee FROM Follow WHERE user = {})'.format(id)
-    query = 'SELECT GROUP_CONCAT(email) FROM User WHERE idUser in {0}'.format(subquery)
+    query = 'SELECT email FROM User WHERE idUser in {0}'.format(subquery)
     cursor.execute(query)
     db.commit()
-    subdict['following'] = cursor.fetchone()
+    emails = []
+    for i in xrange(cursor.rowcount):
+        emails.append(cursor.fetchone()[0])
+    subdict['following'] = emails
 
-    query = 'SELECT GROUP_CONCAT(subscription) FROM Subscriptions WHERE user = {}'.format(id)
+    query = 'SELECT subscription FROM Subscriptions WHERE user = {}'.format(id)
     cursor.execute(query)
     db.commit()
-    subdict['subscriptions'] = cursor.fetchone()
+    threads = []
+    for i in xrange(cursor.rowcount):
+        threads.append(cursor.fetchone()[0])
+    subdict['subscriptions'] = threads
     return subdict
 
 
