@@ -93,31 +93,30 @@ def create(request):
 
     key = 'id' + table;
     value = set_quots(cursor.lastrowid)
-    #response = get_details(table, key, value)
-    response = params.update({'id' : value})
+    response = params
+    response.update({'id' : value})
     dictionary = {'code' : code, 'response' : response}
     return JsonResponse(dictionary)
 
-
+@csrf_exempt
 def details(request):
-    code = 0
     url = request.path
-    table = url.replace('/db/api/','').replace('/details','').replace('/','').capitalize()
-    #requet method = GET
-
-
-
-
-
-    cursor = db.cursor()
-    query = 'SELECT GROUP_CONCAT(followers), GROUP_CONCAT(following) FROM FollowingTable WHERE {0} = {1}'
-
-
-
-
-
-
-
+    table = url.replace('/db/api/','').replace('/details','').replace('/','')
+    params = dict(request.GET.iterlists())
+    required = params.get(table,())
+    #add possible fields
+    
+    keys = {'user' : 'email',
+            'forum' : 'short_name',
+            'thread' : 'idThread',
+            'post' : 'idPost'
+           }
+    key = keys.get(table,'')
+    table = table.capitalize()
+    value = set_quots(required[0])
+    response = get_details(table, key, value)
+    dictionary = {'code' : 0, 'response' : response}
+    return JsonResponse(dictionary)
 
 
 def get_details(table, key, value):
@@ -137,18 +136,35 @@ def get_details(table, key, value):
     if (response.has_key('date')):
         response['date'] = str(response['date'])
 
-    id_val = response.pop('id'+table)
+    id_val = int(response.pop('id'+table))
     response['id'] = id_val
 
-    flag = False
-
     if(table == 'User'):
-        query = 'SELECT GROUP_CONCAT(follower), GROUP_CONCAT(followee) FROM Follow WHERE user = ' + key + ';'
-
-
-
+        subdict = optional_user_fields(id_val)
+    response.update(subdict)
     return response
 
+
+def optional_user_fields(id):
+    subdict = {}
+    cursor = db.cursor()
+    subquery = '(SELECT follower FROM Follow WHERE user = {})'.format(id)
+    query = 'SELECT GROUP_CONCAT(email) FROM User WHERE idUser in {0}'.format(subquery)
+    cursor.execute(query)
+    db.commit()
+    subdict['followers'] = cursor.fetchone()
+
+    subquery = '(SELECT followee FROM Follow WHERE user = {})'.format(id)
+    query = 'SELECT GROUP_CONCAT(email) FROM User WHERE idUser in {0}'.format(subquery)
+    cursor.execute(query)
+    db.commit()
+    subdict['following'] = cursor.fetchone()
+
+    query = 'SELECT GROUP_CONCAT(subscription) FROM Subscriptions WHERE user = {}'.format(id)
+    cursor.execute(query)
+    db.commit()
+    subdict['subscriptions'] = cursor.fetchone()
+    return subdict
 
 
 
