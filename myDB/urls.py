@@ -21,6 +21,17 @@ url(r'^db/api/user/updateProfile', views.updateu, name = 'user update'),
 url(r'^db/api/user/listFollowers', views.listfollowers, name = 'user list followers'),
 url(r'^db/api/user/listFollowing', views.listfollowing, name = 'user list following'),
 url(r'^db/api/user/listPosts', views.listpostsu, name = 'user list posts'),
+url(r'^db/api/thread/close', views.closet, name = 'thread close'),
+url(r'^db/api/thread/open', views.opent, name = 'thread close'),
+url(r'^db/api/thread/remove', views.removet, name = 'thread close'),
+url(r'^db/api/thread/restore', views.restoret, name = 'thread close'),
+url(r'^db/api/thread/vote', views.votet, name = 'thread close'),
+url(r'^db/api/thread/update', views.updatet, name = 'thread close'),
+url(r'^db/api/thread/subscribe', views.subscribe, name = 'thread close'),
+
+
+
+
 
 
 

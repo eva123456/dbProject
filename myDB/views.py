@@ -538,6 +538,119 @@ def listpostsu(request):
     dictionary = {'code' : 0, 'response' : response}
     return JsonResponse(dictionary)
 
+@csrf_exempt
+def closet(request):
+    params = json.loads(request.body)
+    idThread = params.get('thread', ())
+    cursor = db.cursor()
+    query = 'UPDATE Thread SET isClosed = true WHERE idThread = ' + set_quots(idThread) +';'
+    cursor.execute(query)
+    db.commit()
+    dictionary = {'code' : 0, 'response' : params}
+    return JsonResponse(dictionary)
+
+@csrf_exempt
+def opent(request):
+    params = json.loads(request.body)
+    idThread = params.get('thread', ())
+    cursor = db.cursor()
+    query = 'UPDATE Thread SET isClosed = false WHERE idThread = ' + set_quots(idThread) +';'
+    cursor.execute(query)
+    db.commit()
+    dictionary = {'code' : 0, 'response' : params}
+    return JsonResponse(dictionary)
+
+@csrf_exempt
+def removet(request):
+    params = json.loads(request.body)
+    idThread = params.get('thread', ())
+    cursor = db.cursor()
+    query = 'UPDATE Thread SET isDeleted = true, posts = 0 WHERE idThread = ' + set_quots(idThread) +';'
+    cursor.execute(query)
+    query = 'UPDATE Post SET isDeleted = true WHERE thread = ' + set_quots(idThread) + ';'
+    cursor.execute(query)
+    db.commit()
+    dictionary = {'code' : 0, 'response' : params}
+    return JsonResponse(dictionary)
+
+@csrf_exempt
+def restoret(request):
+    params = json.loads(request.body)
+    idThread = params.get('thread', ())
+    cursor = db.cursor()
+    query = 'UPDATE Post SET isDeleted = false WHERE thread = ' + set_quots(idThread) + ';'
+    cursor.execute(query)
+    posts = cursor.rowcount
+    query = 'UPDATE Thread SET isDeleted = false, posts = ' + set_quots(posts) +' WHERE idThread = ' + set_quots(idThread) +';'
+    cursor.execute(query)
+    db.commit()
+    dictionary = {'code' : 0, 'response' : params}
+    return JsonResponse(dictionary)
+
+@csrf_exempt
+def votet(request):
+    params = json.loads(request.body)
+    idThread = params.get('thread', ())
+
+    vote = params.get('vote', ())
+    if (vote == 1):
+        word = 'likes'
+        inc = ' + 1'
+    if (vote == -1):
+        word = 'dislikes'
+        inc = ' - 1'
+
+    cursor = db.cursor()
+    query = 'UPDATE Thread set {0} = {0} + 1 WHERE idThread = '.format(word)
+    query = query + set_quots(idThread)
+    cursor.execute(query)
+
+    query = 'UPDATE Thread SET points = points' + inc
+    query = query + ' WHERE idThread = ' + set_quots(idThread)
+    cursor.execute(query)
+    db.commit()
+
+    response = get_details('Thread', 'idThread', set_quots(idThread))
+    dictionary = {'code' : 0, 'response' : response}
+    return JsonResponse(dictionary)
+
+@csrf_exempt
+def updatet(request):
+    params = json.loads(request.body)
+    message = params.get('message', ())
+    slug = params.get('slug',())
+    idThread = params.get('thread', ())
+
+    cursor = db.cursor()
+    query = 'UPDATE Thread SET message = ' + set_quots(message) + ' , slug = ' + set_quots(slug)
+    query = query + ' WHERE idThread = ' + set_quots(idThread)
+    cursor.execute(query)
+    db.commit()
+    response = get_details('Thread', 'idThread', set_quots(idThread))
+    dictionary = {'code' : 0, 'response' : response}
+    return JsonResponse(dictionary)
+
+@csrf_exempt
+def subscribe(request):
+    params = json.loads(request.body)
+    user = params.get('user', ())
+    thread = params.get('thread',())
+    cursor = db.cursor()
+    user_query = 'SELECT idUser FROM User WHERE email = ' + set_quots(user)
+    cursor.execute(user_query)
+    db.commit()
+    idU = cursor.fetchone()[0]
+    query = 'INSERT INTO Subscriptions(user, subscription) VALUES ({0}, {1})'.format(set_quots(idU), set_quots(thread))
+    cursor.execute(query)
+    db.commit()
+
+    dictionary = {'code' : 0, 'response' : params}
+    return JsonResponse(dictionary)
+
+
+
+
+
 
 
 def get_details(table, key, value):
