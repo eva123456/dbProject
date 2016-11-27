@@ -28,6 +28,13 @@ url(r'^db/api/thread/restore', views.restoret, name = 'thread close'),
 url(r'^db/api/thread/vote', views.votet, name = 'thread close'),
 url(r'^db/api/thread/update', views.updatet, name = 'thread close'),
 url(r'^db/api/thread/subscribe', views.subscribe, name = 'thread close'),
+url(r'^db/api/thread/unsubscribe', views.unsubscribe, name = 'thread close'),
+url(r'^db/api/thread/listPosts', views.listPostst, name = 'thread close'),
+url(r'^db/api/thread/list', views.listt, name = 'thread close'),
+
+
+
+
 
 
 
