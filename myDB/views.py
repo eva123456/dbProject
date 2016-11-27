@@ -299,9 +299,61 @@ def listp(request):
 @csrf_exempt
 def removep(request):
     params = json.loads(request.body)
-    idPost = params.get('post')
+    idPost = params.get('post', ())
 
-    return HttpResponse(idPost)
+    cursor = db.cursor()
+    query = 'UPDATE Post SET isDeleted = true WHERE idPost = ' + set_quots(idPost)
+    cursor.execute(query)
+    query = 'UPDATE Thread SET posts = posts-1 WHERE idThread IN (SELECT thread from Post WHERE idPost = ' + set_quots(idPost) + ');'
+    cursor.execute(query)
+    db.commit()
+
+    dictionary = {'code' : 0, 'response' : params}
+    return JsonResponse(dictionary)
+
+@csrf_exempt
+def restorep(request):
+    params = json.loads(request.body)
+    idPost = params.get('post', ())
+    cursor = db.cursor()
+    query = 'UPDATE Post SET isDeleted = false WHERE idPost = ' + set_quots(idPost)
+    cursor.execute(query)
+    query = 'UPDATE Thread SET posts = posts+1 WHERE idThread IN (SELECT thread from Post WHERE idPost = ' + set_quots(idPost) + ');'
+    cursor.execute(query)
+    db.commit()
+
+    dictionary = {'code' : 0, 'response' : params}
+    return JsonResponse(dictionary)
+
+@csrf_exempt
+def votep(request):
+    params = json.loads(request.body)
+    idPost = params.get('post', ())
+
+    vote = params.get('vote', ())
+    if (vote == 1):
+        word = 'likes'
+        inc = ' + 1'
+    if (vote == -1):
+        word = 'dislikes'
+        inc = ' - 1'
+
+    cursor = db.cursor()
+    query = 'UPDATE Post set {0} = {0} + 1 WHERE idPost = '.format(word)
+    query = query + set_quots(idPost)
+    cursor.execute(query)
+
+    query = 'UPDATE Post SET points = points' + inc
+    query = query + ' WHERE idPost = ' + set_quots(idPost)
+    cursor.execute(query)
+    db.commit()
+
+    dictionary = {'code' : 0, 'response' : params}
+    return JsonResponse(dictionary)
+
+
+
+
 
 
 
