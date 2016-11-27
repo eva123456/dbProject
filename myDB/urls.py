@@ -15,5 +15,13 @@ url(r'^db/api/post/remove', views.removep, name = 'post remove'),
 url(r'^db/api/post/restore', views.restorep, name = 'post restore'),
 url(r'^db/api/post/vote', views.votep, name = 'vote for post'),
 url(r'^db/api/post/update', views.update, name = 'update post'),
+url(r'^db/api/user/follow', views.follow, name = 'user follow'),
+url(r'^db/api/user/unfollow', views.unfollow, name = 'user unfollow'),
+url(r'^db/api/user/updateProfile', views.updateu, name = 'user update'),
+url(r'^db/api/user/listFollowers', views.listfollowers, name = 'user list followers'),
+url(r'^db/api/user/listFollowing', views.listfollowing, name = 'user list following'),
+url(r'^db/api/user/listPosts', views.listpostsu, name = 'user list posts'),
+
+
 
 ]

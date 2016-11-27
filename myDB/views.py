@@ -171,6 +171,8 @@ def listUsersf(request):
     dictionary = {'code' : 0, 'response' : response}
     return JsonResponse(dictionary)
 
+
+
 @csrf_exempt
 def listThreadsf(request):
     params = dict(request.GET.iterlists())
@@ -364,6 +366,175 @@ def update(request):
     cursor.execute(query)
     db.commit()
     response = get_details('Post', 'idPost', set_quots(idPost))
+    dictionary = {'code' : 0, 'response' : response}
+    return JsonResponse(dictionary)
+
+@csrf_exempt
+def follow(request):
+    params = json.loads(request.body)
+    follower = params.get('follower', ())
+    followee = params.get('followee',())
+    cursor = db.cursor()
+    user_query = 'SELECT idUser FROM User WHERE email = ' + set_quots(follower)
+    cursor.execute(user_query)
+    db.commit()
+    idU = cursor.fetchone()[0]
+
+    followee_query = 'SELECT idUser FROM User WHERE email = ' + set_quots(followee)
+    cursor.execute(followee_query)
+    db.commit()
+    idF = cursor.fetchone()[0]
+
+    query = 'INSERT INTO Follow(user, followee) VALUES ({0}, {1})'.format(set_quots(idU), set_quots(idF))
+    cursor.execute(query)
+    query = 'INSERT INTO Follow(user, follower) VALUES ({1}, {0})'.format(set_quots(idU), set_quots(idF))
+    cursor.execute(query)
+    db.commit()
+
+    response = get_details('User', 'idUser', set_quots(idU))
+    dictionary = {'code' : 0, 'response' : response}
+    return JsonResponse(dictionary)
+
+@csrf_exempt
+def unfollow(request):
+    params = json.loads(request.body)
+    follower = params.get('follower', ())
+    followee = params.get('followee',())
+    cursor = db.cursor()
+    user_query = 'SELECT idUser FROM User WHERE email = ' + set_quots(follower)
+    cursor.execute(user_query)
+    db.commit()
+    idU = cursor.fetchone()[0]
+
+    followee_query = 'SELECT idUser FROM User WHERE email = ' + set_quots(followee)
+    cursor.execute(followee_query)
+    db.commit()
+    idF = cursor.fetchone()[0]
+
+    query = 'DELETE FROM Follow WHERE user = ' + set_quots(idU) + ' AND followee = ' + set_quots(idF)
+    cursor.execute(query)
+    query = 'DELETE FROM Follow WHERE user = ' + set_quots(idF) + ' AND follower = ' + set_quots(idU)
+    cursor.execute(query)
+    db.commit()
+
+    response = get_details('User', 'idUser', set_quots(idU))
+    dictionary = {'code' : 0, 'response' : response}
+    return JsonResponse(dictionary)
+
+@csrf_exempt
+def updateu(request):
+    params = json.loads(request.body)
+    about = params.get('about', ())
+    name = params.get('name',())
+    email = params.get('user', ())
+
+    cursor = db.cursor()
+    query = 'UPDATE User SET about = ' + set_quots(about) + ' , name = ' + set_quots(name)
+    query = query + ' WHERE email = ' + set_quots(email)
+    cursor.execute(query)
+    db.commit()
+    response = get_details('User', 'email', set_quots(email))
+    dictionary = {'code' : 0, 'response' : response}
+    return JsonResponse(dictionary)
+
+@csrf_exempt
+def listfollowers(request):
+    params = dict(request.GET.iterlists())
+    user = params.get('user',())
+    since_id = params.get('since_id',())
+    order = params.get('order',('desc',))
+    limit = params.get('limit',())
+
+    since_query = ''
+    limit_query = ''
+    if(since_id):
+        since_id = since_id[0]
+        since_query = 'AND f.user >= {}'.format(since_id)
+    if(limit):
+        limit = limit[0]
+        limit_query = ' LIMIT {}'.format(limit)
+    order = order[0]
+    order_query = ' ORDER BY u.name {}'.format(order)
+
+    cursor = db.cursor()
+    query = 'SELECT f.user FROM Follow f, User u WHERE f.user = u.idUser AND followee IN '
+    query = query + ' (SELECT idUser FROM User WHERE email = ' + set_quots(user[0]) + ') '
+    query = query + since_query + order_query + limit_query
+
+    cursor.execute(query)
+    db.commit()
+    response = []
+    for i in xrange(cursor.rowcount):
+        idUser = set_quots(cursor.fetchone()[0])
+        response.append(get_details('User', 'idUser', idUser))
+
+    dictionary = {'code' : 0, 'response' : response}
+    return JsonResponse(dictionary)
+
+@csrf_exempt
+def listfollowing(request):
+    params = dict(request.GET.iterlists())
+    user = params.get('user',())
+    since_id = params.get('since_id',())
+    order = params.get('order',('desc',))
+    limit = params.get('limit',())
+
+    since_query = ''
+    limit_query = ''
+    if(since_id):
+        since_id = since_id[0]
+        since_query = 'AND f.user >= {}'.format(since_id)
+    if(limit):
+        limit = limit[0]
+        limit_query = ' LIMIT {}'.format(limit)
+    order = order[0]
+    order_query = ' ORDER BY u.name {}'.format(order)
+
+    cursor = db.cursor()
+    query = 'SELECT f.user FROM Follow f, User u WHERE f.user = u.idUser AND follower IN '
+    query = query + ' (SELECT idUser FROM User WHERE email = ' + set_quots(user[0]) + ') '
+    query = query + since_query + order_query + limit_query
+
+    cursor.execute(query)
+    db.commit()
+    response = []
+    for i in xrange(cursor.rowcount):
+        idUser = set_quots(cursor.fetchone()[0])
+        response.append(get_details('User', 'idUser', idUser))
+
+    dictionary = {'code' : 0, 'response' : response}
+    return JsonResponse(dictionary)
+
+@csrf_exempt
+def listpostsu(request):
+    params = dict(request.GET.iterlists())
+    required = params.get('user',())
+    since_id = params.get('since',())
+    order = params.get('order',('desc',))
+    limit = params.get('limit',())
+
+    since_query = ''
+    limit_query = ''
+    if(since_id):
+        since_id = since_id[0]
+        since_query = 'AND date >= ' + set_quots(since_id)
+    if(limit):
+        limit = limit[0]
+        limit_query = ' LIMIT {}'.format(limit)
+    order = order[0]
+    order_query = ' ORDER BY date {}'.format(order)
+    full_opt_query = since_query + order_query + limit_query
+    sub_query = ' user IN (SELECT idUser FROM User WHERE email = ' + set_quots(required[0]) + ')'
+    query = 'SELECT DISTINCT idPost FROM Post WHERE' + sub_query + full_opt_query +';'
+
+    cursor = db.cursor()
+    cursor.execute(query)
+    db.commit()
+    response = []
+    for i in xrange(cursor.rowcount):
+        idPost = set_quots(cursor.fetchone()[0])
+        response.append(get_details('Post', 'idPost', idPost))
+
     dictionary = {'code' : 0, 'response' : response}
     return JsonResponse(dictionary)
 
