@@ -1,4 +1,3 @@
-from django.shortcuts import render
 from django.http import HttpResponse, QueryDict
 from django.db import connection
 import mysql.connector
@@ -10,7 +9,6 @@ from django.views.decorators.csrf import csrf_exempt
 import json
 import MySQLdb
 from django.http import JsonResponse
-import ast
 
 #Connection to database
 db = MySQLdb.connect("localhost","root","f66n9zae2f","API",charset='utf8', init_command='SET NAMES UTF8')
@@ -260,6 +258,51 @@ def listPostsf(request):
 
     dictionary = {'code' : 0, 'response' : response}
     return JsonResponse(dictionary)
+
+@csrf_exempt
+def listp(request):
+    params = dict(request.GET.iterlists())
+    required = params.get('forum',()) or params.get('thread', ())  #thread OR forum
+    sub_query = ''
+    if ('forum' in params.keys()):
+        sub_query = ' forum IN (SELECT idForum FROM Forum WHERE short_name = ' + set_quots(required[0]) + ')'
+    if('thread' in params.keys()):
+        sub_query = 'thread = ' + set_quots(required[0])
+
+    since_id = params.get('since',())
+    order = params.get('order',('desc',))
+    limit = params.get('limit',())
+    since_query = ''
+    limit_query = ''
+    if(since_id):
+        since_id = since_id[0]
+        since_query = 'AND date >= ' + set_quots(since_id)
+    if(limit):
+        limit = limit[0]
+        limit_query = ' LIMIT {}'.format(limit)
+    order = order[0]
+    order_query = ' ORDER BY date {}'.format(order)
+    full_opt_query = since_query + order_query + limit_query
+    query = 'SELECT DISTINCT idPost FROM Post WHERE' + sub_query + full_opt_query +';'
+
+    cursor = db.cursor()
+    cursor.execute(query)
+    db.commit()
+    response = []
+    for i in xrange(cursor.rowcount):
+        idPost = set_quots(cursor.fetchone()[0])
+        response.append(get_details('Post', 'idPost', idPost))
+
+    dictionary = {'code' : 0, 'response' : response}
+    return JsonResponse(dictionary)
+
+@csrf_exempt
+def removep(request):
+    params = json.loads(request.body)
+    idPost = params.get('post')
+
+    return HttpResponse(idPost)
+
 
 
 def get_details(table, key, value):
