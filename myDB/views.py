@@ -267,7 +267,7 @@ def listp(request):
     if ('forum' in params.keys()):
         sub_query = ' forum IN (SELECT idForum FROM Forum WHERE short_name = ' + set_quots(required[0]) + ')'
     if('thread' in params.keys()):
-        sub_query = 'thread = ' + set_quots(required[0])
+        sub_query = 'thread = {}'.format(required[0])
 
     since_id = params.get('since',())
     order = params.get('order',('desc',))
@@ -276,14 +276,14 @@ def listp(request):
     limit_query = ''
     if(since_id):
         since_id = since_id[0]
-        since_query = 'AND date >= ' + set_quots(since_id)
+        since_query = ' AND date >= ' + set_quots(since_id)
     if(limit):
         limit = limit[0]
         limit_query = ' LIMIT {}'.format(limit)
     order = order[0]
     order_query = ' ORDER BY date {}'.format(order)
     full_opt_query = since_query + order_query + limit_query
-    query = 'SELECT DISTINCT idPost FROM Post WHERE' + sub_query + full_opt_query +';'
+    query = 'SELECT DISTINCT idPost FROM Post WHERE ' + sub_query + full_opt_query +';'
 
     cursor = db.cursor()
     cursor.execute(query)
@@ -348,12 +348,24 @@ def votep(request):
     cursor.execute(query)
     db.commit()
 
-    dictionary = {'code' : 0, 'response' : params}
+    response = get_details('Post', 'idPost', set_quots(idPost))
+    dictionary = {'code' : 0, 'response' : response}
     return JsonResponse(dictionary)
 
 
+@csrf_exempt
+def update(request):
+    params = json.loads(request.body)
+    idPost = params.get('post', ())
+    message = params.get('message',())
 
-
+    cursor = db.cursor()
+    query = 'UPDATE Post SET message = ' + set_quots(message) + ' WHERE idPost = ' + set_quots(idPost)
+    cursor.execute(query)
+    db.commit()
+    response = get_details('Post', 'idPost', set_quots(idPost))
+    dictionary = {'code' : 0, 'response' : response}
+    return JsonResponse(dictionary)
 
 
 

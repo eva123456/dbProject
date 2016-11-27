@@ -14,7 +14,6 @@ url(r'^db/api/post/list', views.listp, name = 'post list'),
 url(r'^db/api/post/remove', views.removep, name = 'post remove'),
 url(r'^db/api/post/restore', views.restorep, name = 'post restore'),
 url(r'^db/api/post/vote', views.votep, name = 'vote for post'),
-
-
+url(r'^db/api/post/update', views.update, name = 'update post'),
 
 ]
