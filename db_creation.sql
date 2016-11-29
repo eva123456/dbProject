@@ -10,7 +10,7 @@ USE `API` ;
 -- -----------------------------------------------------
 CREATE TABLE IF NOT EXISTS `API`.`User` (
   `idUser` INT NOT NULL AUTO_INCREMENT,
-  `about` VARCHAR(100) DEFAULT '',
+  `about` TEXT DEFAULT '',
   `email` VARCHAR(50) NOT NULL DEFAULT '',
   `isAnonymous` TINYINT(1) NOT NULL DEFAULT false,
   `name` VARCHAR(50) DEFAULT '',
