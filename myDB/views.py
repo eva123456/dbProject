@@ -706,10 +706,14 @@ def listt(request):
 @csrf_exempt
 def listPostst(request):
     params = dict(request.GET.iterlists())
+    response = []
     required = params.get('thread',())
     since_id = params.get('since',())
     order = params.get('order',('desc',))
     limit = params.get('limit',())
+
+    sort = params.get('sort',('flat',))  #
+    sort = sort[0] #
 
     since_query = ''
     limit_query = ''
@@ -721,20 +725,58 @@ def listPostst(request):
         limit_query = ' LIMIT {}'.format(limit)
     order = order[0]
     order_query = ' ORDER BY date {}'.format(order)
-    full_opt_query = since_query + order_query + limit_query
-    sub_query = ' thread = ' + set_quots(required[0])
-    query = 'SELECT DISTINCT idPost FROM Post WHERE' + sub_query + full_opt_query +';'
-
+    sub_query = ' thread = {}'.format(required[0])
     cursor = db.cursor()
-    cursor.execute(query)
-    db.commit()
-    response = []
-    for i in xrange(cursor.rowcount):
-        idPost = set_quots(cursor.fetchone()[0])
-        response.append(get_details('Post', 'idPost', idPost))
+
+    if(sort == 'flat'):
+        full_opt_query = since_query + order_query + limit_query
+        query = 'SELECT idPost FROM Post WHERE' + sub_query + full_opt_query +';'
+
+        cursor.execute(query)
+        db.commit()
+        for i in xrange(cursor.rowcount):
+            idPost = set_quots(cursor.fetchone()[0])
+            response.append(get_details('Post', 'idPost', idPost))
+
+    if(sort == 'tree'):
+        full_opt_query = since_query + ' AND parent IS NULL' + order_query
+        query = 'SELECT idPost FROM Post WHERE' + sub_query + full_opt_query +';'
+        cursor.execute(query)
+        db.commit()
+        for row in cursor.fetchall():
+            idPost = row[0]
+            tree_sort(idPost, required[0], int(limit), response)
+
+    if(sort == 'parent_tree'):
+        full_opt_query = since_query + ' AND parent IS NULL' + order_query + limit_query
+        query = 'SELECT idPost FROM Post WHERE' + sub_query + full_opt_query +';'
+        cursor.execute(query)
+        db.commit()
+        for row in cursor.fetchall():
+            idPost = row[0]
+            parent_tree_sort(idPost, required[0], response)
 
     dictionary = {'code' : 0, 'response' : response}
     return JsonResponse(dictionary)
+
+
+def tree_sort(idPost, idThread, limit, response):
+    if len(response) == limit:
+        return
+    else:
+        response.append(get_details('Post', 'idPost', set_quots(idPost)))
+        query = 'SELECT idPost from Post WHERE thread = ' + set_quots(idThread) + ' AND parent = ' + set_quots(idPost) + ';'
+        cursor = db.cursor()
+        cursor.execute(query)
+        db.commit()
+        for row in cursor.fetchall():
+            child = row[0]
+            tree_sort(child, idThread, limit, response)
+
+
+
+def parent_tree_sort(idPost, idThread, response):
+    tree_sort(idPost, idThread, -1, response)
 
 
 def get_details(table, key, value):
