@@ -10,7 +10,6 @@ import json
 import MySQLdb
 from django.http import JsonResponse
 
-#Connection to database
 db = MySQLdb.connect("localhost","root","f66n9zae2f","API",charset='utf8', init_command='SET NAMES UTF8')
 db.set_character_set('utf8')
 dbc = db.cursor()
@@ -61,7 +60,7 @@ def status(request):
     cursor.execute('SELECT COUNT(*) FROM Post where isDeleted = false')
     response['post'] = int(cursor.fetchone()[0])
     dictionary = {'code': 0, 'response': response}
-    return HttpResponse(json.dumps(dictionary), content_type='application/json')
+    return JsonResponse(dictionary)
 
 
 @csrf_exempt
@@ -763,20 +762,19 @@ def listPostst(request):
 def tree_sort(idPost, idThread, limit, response):
     if len(response) == limit:
         return
-    else:
-        response.append(get_details('Post', 'idPost', set_quots(idPost)))
-        query = 'SELECT idPost from Post WHERE thread = ' + set_quots(idThread) + ' AND parent = ' + set_quots(idPost) + ';'
-        cursor = db.cursor()
-        cursor.execute(query)
-        db.commit()
-        for row in cursor.fetchall():
-            child = row[0]
-            tree_sort(child, idThread, limit, response)
+    response.append(get_details('Post', 'idPost', set_quots(idPost)))
+    query = 'SELECT idPost from Post WHERE thread = ' + set_quots(idThread) + ' AND parent = ' + set_quots(idPost) + ';'
+    cursor = db.cursor()
+    cursor.execute(query)
+    db.commit()
+    for row in cursor.fetchall():
+        child = row[0]
+        tree_sort(child, idThread, limit, response)
 
 
 
 def parent_tree_sort(idPost, idThread, response):
-    tree_sort(idPost, idThread, -1, response)
+    tree_sort(idPost, idThread, 'unlimited' , response)
 
 
 def get_details(table, key, value):
