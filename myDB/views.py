@@ -1,9 +1,5 @@
 from django.http import HttpResponse, QueryDict
 from django.db import connection
-import mysql.connector
-from mysql.connector import Error
-from django.db import IntegrityError, ProgrammingError, OperationalError
-from django.core import serializers
 from itertools import *
 from django.views.decorators.csrf import csrf_exempt
 import json
