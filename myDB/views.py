@@ -190,8 +190,6 @@ def listThreadsf(request):
     order_query = ' ORDER BY Thread.date {}'.format(order)
     full_opt_query = since_query + order_query + limit_query
     sub_query = ' Forum ON Thread.forum = Forum.idForum WHERE Forum.short_name = ' + set_quots(required[0]) + ' '
-    #sub_query = ' forum IN (SELECT idForum FROM Forum WHERE short_name = ' + set_quots(required[0]) + ')'
-    #query = 'SELECT idThread FROM Thread WHERE' + sub_query + full_opt_query +';'
     query = 'SELECT idThread FROM Thread JOIN' + sub_query + full_opt_query +';'
 
     cursor = db.cursor()
@@ -265,7 +263,7 @@ def listp(request):
     required = params.get('forum',()) or params.get('thread', ())  #thread OR forum
     sub_query = ''
     if ('forum' in params.keys()):
-        sub_query = 'JOIN Forum ON Post.forum = Forum.idForum WHERE Forum.short_name = ' + set_quots(required[0]) + ' '
+        sub_query = 'WHERE forum IN (SELECT idForum FROM Forum WHERE short_name = ' + set_quots(required[0]) + ')'
     if('thread' in params.keys()):
         sub_query = 'WHERE thread = {}'.format(required[0])
 
@@ -783,12 +781,7 @@ def get_details(table, key, value):
                'Thread' : ['idThread', 'date', 'dislikes', 'forum', 'isClosed', 'isDeleted', 'likes', 'message', 'points', 'posts', 'slug',   'title', 'user'],
                'Post' : ['idPost', 'date', 'dislikes', 'forum', 'isApproved', 'isDeleted', 'isEdited', 'isHighlighted', 'isSpam', 'likes', 'message', 'parent', 'points', 'thread', 'user']}
 
-    #query = 'SHOW COLUMNS FROM {}'.format(table)
     cursor = db.cursor()
-    #cursor.execute(query)
-    #db.commit()
-    #columns = cursor.fetchall()
-    #keys = [columns[j][0] for j in range(len(columns))]
     keys = columns[table]
     query = 'SELECT {0} FROM {1} WHERE {2} = '.format(', '.join(keys), table, key) + value + ';'
     cursor.execute(query)
@@ -834,7 +827,6 @@ def optional_user_fields(id):
     cursor = db.cursor()
 
     query = 'SELECT email FROM User JOIN Follow ON User.idUser = Follow.follower WHERE Follow.user = {}'.format(id)
-    #query = 'SELECT email FROM User WHERE idUser in {0}'.format(subquery)
     cursor.execute(query)
     db.commit()
     emails = []
@@ -842,8 +834,6 @@ def optional_user_fields(id):
         emails.append(cursor.fetchone()[0])
     subdict['followers'] = emails
 
-    #subquery = '(SELECT followee FROM Follow WHERE user = {})'.format(id)
-    #query = 'SELECT email FROM User WHERE idUser in {0}'.format(subquery)
     query = 'SELECT email FROM User JOIN Follow ON User.idUser = Follow.followee WHERE Follow.user = {}'.format(id)
     cursor.execute(query)
     db.commit()
