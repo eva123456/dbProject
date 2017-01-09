@@ -48,13 +48,13 @@ def clear(request):
 def status(request):
     response = {}
     cursor = db.cursor()
-    cursor.execute('SELECT COUNT(idUser) FROM User')
+    cursor.execute('SELECT COUNT(*) FROM User')
     response['user'] = int(cursor.fetchone()[0])
-    cursor.execute('SELECT COUNT(idThread) FROM Thread where isDeleted = false')
+    cursor.execute('SELECT COUNT(*) FROM Thread where isDeleted = false')
     response['thread'] = int(cursor.fetchone()[0])
-    cursor.execute('SELECT COUNT(idForum) FROM Forum')
+    cursor.execute('SELECT COUNT(*) FROM Forum')
     response['forum'] = int(cursor.fetchone()[0])
-    cursor.execute('SELECT COUNT(idPost) FROM Post where isDeleted = false')
+    cursor.execute('SELECT COUNT(*) FROM Post where isDeleted = false')
     response['post'] = int(cursor.fetchone()[0])
     dictionary = {'code': 0, 'response': response}
     return JsonResponse(dictionary)
@@ -136,6 +136,7 @@ def details(request):
     return JsonResponse(dictionary)
 
 @csrf_exempt
+@cache_page(60*20)
 def listUsersf(request):
     params = dict(request.GET.iterlists())
     required = params.get('forum',())
@@ -170,6 +171,7 @@ def listUsersf(request):
 
 
 @csrf_exempt
+@cache_page(60*20)
 def listThreadsf(request):
     params = dict(request.GET.iterlists())
     required = params.get('forum',())
@@ -213,6 +215,7 @@ def listThreadsf(request):
 
 
 @csrf_exempt
+@cache_page(60*20)
 def listPostsf(request):
     params = dict(request.GET.iterlists())
     required = params.get('forum',())
@@ -232,13 +235,18 @@ def listPostsf(request):
     order = order[0]
     order_query = ' ORDER BY date {}'.format(order)
     full_opt_query = since_query + order_query + limit_query
-    sub_query = ' forum IN (SELECT idForum FROM Forum WHERE short_name = ' + set_quots(required[0]) + ')'
-    query = 'SELECT idPost FROM Post WHERE' + sub_query + full_opt_query +';'
-
+    sub_query = 'SELECT idForum FROM Forum WHERE short_name = ' + set_quots(required[0]);    
+    
     cursor = db.cursor()
+    cursor.execute(sub_query)
+    response = []
+    db.commit()
+    if cursor.rowcount == 0:
+        return JsonResponse({'code' : 0, 'response' : response})
+    
+    query = 'SELECT idPost FROM Post WHERE forum = ' + set_quots(cursor.fetchone()[0]) + full_opt_query +';'
     cursor.execute(query)
     db.commit()
-    response = []
     for i in xrange(cursor.rowcount):
         idPost = set_quots(cursor.fetchone()[0])
         sub_dict = {}
@@ -258,6 +266,7 @@ def listPostsf(request):
     return JsonResponse(dictionary)
 
 @csrf_exempt
+@cache_page(60*20)
 def listp(request):
     params = dict(request.GET.iterlists())
     required = params.get('forum',()) or params.get('thread', ())  #thread OR forum
@@ -434,6 +443,7 @@ def updateu(request):
     return JsonResponse(dictionary)
 
 @csrf_exempt
+@cache_page(60*20)
 def listfollowers(request):
     params = dict(request.GET.iterlists())
     user = params.get('user',())
@@ -468,6 +478,7 @@ def listfollowers(request):
     return JsonResponse(dictionary)
 
 @csrf_exempt
+@cache_page(60*20)
 def listfollowing(request):
     params = dict(request.GET.iterlists())
     user = params.get('user',())
@@ -502,6 +513,7 @@ def listfollowing(request):
     return JsonResponse(dictionary)
 
 @csrf_exempt
+@cache_page(60*20)
 def listpostsu(request):
     params = dict(request.GET.iterlists())
     required = params.get('user',())
@@ -662,6 +674,7 @@ def unsubscribe(request):
     return JsonResponse(dictionary)
 
 @csrf_exempt
+@cache_page(60*20)
 def listt(request):
     params = dict(request.GET.iterlists())
     required = params.get('forum',()) or params.get('user', ())
@@ -700,6 +713,7 @@ def listt(request):
 
 
 @csrf_exempt
+@cache_page(60*20)
 def listPostst(request):
     params = dict(request.GET.iterlists())
     response = []
