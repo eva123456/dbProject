@@ -136,7 +136,6 @@ def details(request):
     return JsonResponse(dictionary)
 
 @csrf_exempt
-@cache_page(60*20)
 def listUsersf(request):
     params = dict(request.GET.iterlists())
     required = params.get('forum',())
@@ -171,7 +170,6 @@ def listUsersf(request):
 
 
 @csrf_exempt
-@cache_page(60*20)
 def listThreadsf(request):
     params = dict(request.GET.iterlists())
     required = params.get('forum',())
@@ -215,7 +213,6 @@ def listThreadsf(request):
 
 
 @csrf_exempt
-@cache_page(60*20)
 def listPostsf(request):
     params = dict(request.GET.iterlists())
     required = params.get('forum',())
@@ -266,7 +263,6 @@ def listPostsf(request):
     return JsonResponse(dictionary)
 
 @csrf_exempt
-@cache_page(60*20)
 def listp(request):
     params = dict(request.GET.iterlists())
     required = params.get('forum',()) or params.get('thread', ())  #thread OR forum
@@ -443,7 +439,6 @@ def updateu(request):
     return JsonResponse(dictionary)
 
 @csrf_exempt
-@cache_page(60*20)
 def listfollowers(request):
     params = dict(request.GET.iterlists())
     user = params.get('user',())
@@ -513,7 +508,6 @@ def listfollowing(request):
     return JsonResponse(dictionary)
 
 @csrf_exempt
-@cache_page(60*20)
 def listpostsu(request):
     params = dict(request.GET.iterlists())
     required = params.get('user',())
@@ -674,7 +668,6 @@ def unsubscribe(request):
     return JsonResponse(dictionary)
 
 @csrf_exempt
-@cache_page(60*20)
 def listt(request):
     params = dict(request.GET.iterlists())
     required = params.get('forum',()) or params.get('user', ())
@@ -713,7 +706,6 @@ def listt(request):
 
 
 @csrf_exempt
-@cache_page(60*20)
 def listPostst(request):
     params = dict(request.GET.iterlists())
     response = []
