@@ -292,21 +292,12 @@ def listp(request):
     params = dict(request.GET.iterlists())
     required = params.get('forum',()) or params.get('thread', ())  #thread OR forum
     sub_query = ''
-    query1 = ''
     cursor = db.cursor()
-    response = []
     if ('forum' in params.keys()):
+        sub_query = 'SELECT idForum FROM Forum WHERE short_name = ' + set_quots(required[0]);
         #sub_query = 'WHERE forum IN (SELECT idForum FROM Forum WHERE short_name = ' + set_quots(required[0]) + ')'
-        sub_query = 'SELECT idForum FROM Forum WHERE short_name = ' + set_quots(required[0]) + ';'
-        cursor.execute(sub_query)
-        db.commit()
-        if cursor.rowcount == 0:
-            return JsonResponse({'code' : 0, 'response' : response})
-        query1 = 'SELECT idPost FROM Post WHERE forum = ' +  set_quots(cursor.fetchone()[0])
-
     if('thread' in params.keys()):
         sub_query = 'WHERE thread = {}'.format(required[0])
-        query1 = 'SELECT idPost FROM Post ' + sub_query
 
     since_id = params.get('since',())
     order = params.get('order',('desc',))
@@ -316,6 +307,12 @@ def listp(request):
     if(since_id):
         since_id = since_id[0]
         since_query = ' AND Post.date >= ' + set_quots(since_id)
+        cursor.execute(sub_query)
+    response = []
+    db.commit()
+    if cursor.rowcount == 0:
+        return JsonResponse({'code' : 0, 'response' : response})
+
     if(limit):
         limit = limit[0]
         limit_query = ' LIMIT {}'.format(limit)
@@ -323,7 +320,15 @@ def listp(request):
     order_query = ' ORDER BY Post.date {}'.format(order)
     full_opt_query = since_query + order_query + limit_query
 
-    query = query1 + full_opt_query +';'
+    #sub_query = 'SELECT idForum FROM Forum WHERE short_name = ' + set_quots(required[0]);
+
+    #cursor = db.cursor()
+
+    query = 'SELECT idPost FROM Post WHERE forum = ' + set_quots(cursor.fetchone()[0]) + full_opt_query +';'
+    cursor.execute(query)
+    db.commit()
+
+    #query = 'SELECT idPost FROM Post ' + sub_query + full_opt_query +';'
 
     #cursor = db.cursor()
     cursor.execute(query)
@@ -707,31 +712,11 @@ def unsubscribe(request):
 def listt(request):
     params = dict(request.GET.iterlists())
     required = params.get('forum',()) or params.get('user', ())
-    #sub_query = ''
     sub_query = ''
-    query1 = ''
-    cursor = db.cursor()
-    response = []
     if ('forum' in params.keys()):
-        sub_query = 'SELECT idForum FROM Forum WHERE short_name = ' + set_quots(required[0]) + ';'
-        cursor.execute(sub_query)
-        db.commit()
-        if cursor.rowcount == 0:
-            return JsonResponse({'code' : 0, 'response' : response})
-        query1 = 'SELECT idThread FROM Thread WHERE forum = ' +  set_quots(cursor.fetchone()[0])
-
+        sub_query = 'Forum on Thread.user = Forum.idForum WHERE Forum.short_name = ' + set_quots(required[0]) + ' '
     if('user' in params.keys()):
-        sub_query = 'SELECT idUser FROM User WHERE email = ' + set_quots(required[0]) + ';'
-        cursor.execute(sub_query)
-        db.commit()
-        if cursor.rowcount == 0:
-            return JsonResponse({'code' : 0, 'response' : response})
-        query1 = 'SELECT idThread FROM Thread WHERE user = ' +  set_quots(cursor.fetchone()[0])
-
-    #if ('forum' in params.keys()):
-        #sub_query = 'Forum on Thread.user = Forum.idForum WHERE Forum.short_name = ' + set_quots(required[0]) + ' '
-    #if('user' in params.keys()):
-        #sub_query ='User on Thread.user = User.idUser WHERE User.email = ' + set_quots(required[0]) + ' '
+        sub_query ='User on Thread.user = User.idUser WHERE User.email = ' + set_quots(required[0]) + ' '
 
     since_id = params.get('since',())
     order = params.get('order',('desc',))
@@ -747,12 +732,12 @@ def listt(request):
     order = order[0]
     order_query = ' ORDER BY Thread.date {}'.format(order)
     full_opt_query = since_query + order_query + limit_query
-    query = query1 + full_opt_query + ';'
-    #query = 'SELECT Thread.idThread FROM Thread JOIN ' + sub_query + full_opt_query +';'
-    #cursor = db.cursor()
+    query = 'SELECT Thread.idThread FROM Thread JOIN ' + sub_query + full_opt_query +';'
+
+    cursor = db.cursor()
     cursor.execute(query)
     db.commit()
-    #response = []
+    response = []
     for i in xrange(cursor.rowcount):
         idThread = set_quots(cursor.fetchone()[0])
         response.append(get_details('Thread', 'idThread', idThread))

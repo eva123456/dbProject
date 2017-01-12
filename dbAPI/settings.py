@@ -28,7 +28,7 @@ DEBUG = True
 CACHE_BACKEND = 'memcached://127.0.0.1:5000/'
 
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [u'0.0.0.0', 'localhost',u'127.0.0.1', u'10.20.1.50',]
 
 
 # Application definition
