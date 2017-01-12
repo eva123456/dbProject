@@ -48,13 +48,13 @@ def clear(request):
 def status(request):
     response = {}
     cursor = db.cursor()
-    cursor.execute('SELECT COUNT(idUser) FROM User')
+    cursor.execute('SELECT COUNT(*) FROM User')
     response['user'] = int(cursor.fetchone()[0])
-    cursor.execute('SELECT COUNT(idThread) FROM Thread where isDeleted = false')
+    cursor.execute('SELECT COUNT(*) FROM Thread where isDeleted = false')
     response['thread'] = int(cursor.fetchone()[0])
-    cursor.execute('SELECT COUNT(idForum) FROM Forum')
+    cursor.execute('SELECT COUNT(*) FROM Forum')
     response['forum'] = int(cursor.fetchone()[0])
-    cursor.execute('SELECT COUNT(idPost) FROM Post where isDeleted = false')
+    cursor.execute('SELECT COUNT(*) FROM Post where isDeleted = false')
     response['post'] = int(cursor.fetchone()[0])
     dictionary = {'code': 0, 'response': response}
     return JsonResponse(dictionary)
@@ -268,7 +268,6 @@ def listPostsf(request):
     query = 'SELECT idPost FROM Post WHERE forum = ' + set_quots(cursor.fetchone()[0]) + full_opt_query +';'
     cursor.execute(query)
     db.commit()
-
     for i in xrange(cursor.rowcount):
         idPost = set_quots(cursor.fetchone()[0])
         sub_dict = {}
@@ -510,6 +509,7 @@ def listfollowers(request):
     return JsonResponse(dictionary)
 
 @csrf_exempt
+@cache_page(60*20)
 def listfollowing(request):
     params = dict(request.GET.iterlists())
     user = params.get('user',())
