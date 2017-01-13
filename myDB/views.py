@@ -5,7 +5,7 @@ from django.views.decorators.csrf import csrf_exempt
 import json
 import MySQLdb
 from django.http import JsonResponse
-from django.views.decorators.cache import cache_page
+#from django.views.decorators.cache import cache_page
 
 db = MySQLdb.connect("localhost","root","f66n9zae2f","API",charset='utf8', init_command='SET NAMES UTF8')
 db.set_character_set('utf8')
@@ -164,7 +164,7 @@ def listUsersf(request):
     if cursor.rowcount == 0:
         return JsonResponse({'code' : 0, 'response' : response})
 
-    query = 'SELECT user FROM Post p, User u WHERE p.forum = ' + set_quots(cursor.fetchone()[0]) + full_opt_query +';'
+    query = 'SELECT DISTINCT user FROM Post p, User u WHERE p.user = u.idUser AND p.forum = ' + set_quots(cursor.fetchone()[0]) + full_opt_query +';'
 
     #sub_query = 'p.forum IN (SELECT idForum FROM Forum WHERE short_name = ' + set_quots(required[0]) + ')'
     #query = 'SELECT user FROM Post p, User u WHERE p.user = u.idUser AND ' + sub_query + full_opt_query +';'
@@ -509,7 +509,6 @@ def listfollowers(request):
     return JsonResponse(dictionary)
 
 @csrf_exempt
-@cache_page(60*20)
 def listfollowing(request):
     params = dict(request.GET.iterlists())
     user = params.get('user',())
